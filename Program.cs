@@ -62,6 +62,7 @@ public class Program
 		Log($"Testing {inputPath}");
 		Replay replay = JsonSerializer.Deserialize<Replay>(File.ReadAllText(inputPath), NetworkingConstants.jsonIncludeOption)!;
 		string arguments = String.Join(' ', replay.cmdlineArgs) + " --seed=" + replay.seed;
+		arguments = arguments.Replace(" --replay=true", "");
 		if(corePath == null)
 		{
 			Log("No core path specified", severity: LogSeverity.Error);
@@ -130,8 +131,6 @@ public class Program
 							if(action.packet.Count != packet.Count)
 							{
 								Log($"Packets have different lengths: {action.packet.Count} vs {packet.Count}", severity: LogSeverity.Error);
-								Log(Encoding.UTF8.GetString(action.packet.ToArray()));
-								Log(Encoding.UTF8.GetString(packet.ToArray()));
 							}
 							else
 							{
@@ -140,7 +139,7 @@ public class Program
 								{
 									if(packet[j] != action.packet[j])
 									{
-										Log($"[{j}]: {packet[j]} vs. {action.packet[j]}");
+										Log($"[{j}]: {packet[j]} vs. {action.packet[j]} ({(char)packet[j]} vs. {(char)action.packet[j]})");
 									}
 								}
 							}
