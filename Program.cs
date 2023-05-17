@@ -10,10 +10,12 @@ namespace CardGameTestHarness;
 
 public class Program
 {
+	static string? corePath;
 	public static void Main(string[] args)
 	{
+		corePath = args[0];
 		bool stopOnError = false;
-		if(args.Length > 1)
+		if(args.Length > 2)
 		{
 			if(args.Contains("--stop_on_error"))
 			{
@@ -22,10 +24,10 @@ public class Program
 		}
 		int count = 0;
 		int successful = 0;
-		if(Directory.Exists(args[0]))
+		if(Directory.Exists(args[1]))
 		{
 			List<string> failedFiles = new List<string>();
-			foreach(string file in Directory.EnumerateFiles(args[0]))
+			foreach(string file in Directory.EnumerateFiles(args[1]))
 			{
 				if(TestReplay(file))
 				{
@@ -60,11 +62,16 @@ public class Program
 		Log($"Testing {inputPath}");
 		Replay replay = JsonSerializer.Deserialize<Replay>(File.ReadAllText(inputPath), NetworkingConstants.jsonIncludeOption)!;
 		string arguments = String.Join(' ', replay.cmdlineArgs) + " --seed=" + replay.seed;
+		if(corePath == null)
+		{
+			Log("No core path specified", severity: LogSeverity.Error);
+			return false;
+		}
 		ProcessStartInfo info = new ProcessStartInfo
 		{
 			Arguments = arguments,
-			FileName = "/Data/Prog/Programme/CardGameCore/bin/Debug/net7.0/CardGameCore",
-			WorkingDirectory = "/Data/Prog/Programme/CardGameCore/",
+			FileName = corePath,
+			WorkingDirectory = Path.GetDirectoryName(corePath),
 			RedirectStandardOutput = true,
 		};
 		string playerString = replay.cmdlineArgs.First(x => x.StartsWith("--players="));
