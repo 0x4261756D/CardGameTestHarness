@@ -98,7 +98,7 @@ public class Program
 						{
 							if(stream0.DataAvailable)
 							{
-								Log("Core sent something but wanted to send", LogSeverity.Error);
+								Log($"[{i}]: Core sent something but wanted to send", LogSeverity.Error);
 								core.Kill();
 								return false;
 							}
@@ -109,7 +109,7 @@ public class Program
 						{
 							if(stream1.DataAvailable)
 							{
-								Log("Core sent something but wanted to send", LogSeverity.Error);
+								Log($"[{i}]: Core sent something but wanted to send", LogSeverity.Error);
 								core.Kill();
 								return false;
 							}
@@ -119,10 +119,10 @@ public class Program
 					}
 					else
 					{
-						List<byte>? packet = ReceiveRawPacket((action.player == 0) ? stream0 : stream1, timeout: 1000);
+						List<byte>? packet = ReceiveRawPacket((action.player == index0) ? stream0 : stream1, timeout: 2000);
 						if(packet == null)
 						{
-							Log("Could not receive a packet in time", LogSeverity.Error);
+							Log($"[{i}]: Could not receive a packet in time", LogSeverity.Error);
 							core.Kill();
 							return false;
 						}
@@ -130,11 +130,11 @@ public class Program
 						{
 							if(action.packet.Count != packet.Count)
 							{
-								Log($"Packets have different lengths: {action.packet.Count} vs {packet.Count}", severity: LogSeverity.Error);
+								Log($"[{i}]: Packets have different lengths: {action.packet.Count} vs {packet.Count}", severity: LogSeverity.Error);
 							}
 							else
 							{
-								Log("Packet difference:", severity: LogSeverity.Error);
+								Log($"[{i}]: Packet difference:", severity: LogSeverity.Error);
 								for(int j = 0; j < packet.Count; j++)
 								{
 									if(packet[j] != action.packet[j])

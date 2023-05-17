@@ -11,7 +11,7 @@
 			"preLaunchTask": "build",
 			// If you have changed target frameworks, make sure to update the program path.
 			"program": "${workspaceFolder}/bin/Debug/net7.0/CardGameTestHarness.dll",
-			"args": ["/Data/Prog/Programme/CardGameCore/bin/Debug/net7.0/replays/20230429_213847_MTI2MjM6Mzc6NTY=_vs_NzU4MjM6Mzg6MDE=.replay"],
+			"args": ["/Data/Prog/Programme/CardGameCore/bin/Debug/net7.0/CardGameCore", "/Data/Prog/Programme/CardGameCore/bin/Debug/net7.0/replays/"],
 			"cwd": "${workspaceFolder}",
 			// For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
 			"console": "internalConsole",
