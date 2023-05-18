@@ -1,10 +1,10 @@
-﻿using System.Text.Json;
-using CardGameUtils;
-using static CardGameUtils.Functions;
-using CardGameUtils.Structs;
-using System.Text;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
+using CardGameUtils;
+using CardGameUtils.Structs;
+using static CardGameUtils.Functions;
 
 namespace CardGameTestHarness;
 
