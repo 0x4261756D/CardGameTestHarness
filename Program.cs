@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using CardGameUtils;
 using static CardGameUtils.Functions;
 using CardGameUtils.Structs;
@@ -118,7 +118,7 @@ public class Program
 					}
 					else
 					{
-						List<byte>? packet = ReceiveRawPacket((action.player == index0) ? stream0 : stream1, timeout: 2000);
+						List<byte>? packet = ReceiveRawPacket((action.player == index0) ? stream0 : stream1, timeout: 10000);
 						if(packet == null)
 						{
 							Log($"[{i}]: Could not receive a packet in time", LogSeverity.Error);
