@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -153,7 +153,7 @@ public class Program
 		Console.Write($"===Passed===");
 		Console.ResetColor();
 		Console.WriteLine();
-		core.Kill();
+		core.Close();
 		return true;
 	}
 
