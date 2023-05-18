@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using CardGameUtils;
 using static CardGameUtils.Functions;
 using CardGameUtils.Structs;
@@ -11,16 +11,15 @@ namespace CardGameTestHarness;
 public class Program
 {
 	static string? corePath;
+	static bool shouldProfile = false;
 	public static void Main(string[] args)
 	{
 		corePath = args[0];
 		bool stopOnError = false;
 		if(args.Length > 2)
 		{
-			if(args.Contains("--stop_on_error"))
-			{
-				stopOnError = true;
-			}
+			stopOnError = args.Contains("--stop_on_error");
+			shouldProfile = args.Contains("--profile");
 		}
 		int count = 0;
 		int successful = 0;
@@ -70,8 +69,8 @@ public class Program
 		}
 		ProcessStartInfo info = new ProcessStartInfo
 		{
-			Arguments = arguments,
-			FileName = corePath,
+			Arguments = shouldProfile ? $"collect -- {corePath} {arguments}" : arguments,
+			FileName = shouldProfile ? "dotnet-trace" : corePath,
 			WorkingDirectory = Path.GetDirectoryName(corePath),
 			RedirectStandardOutput = true,
 		};
