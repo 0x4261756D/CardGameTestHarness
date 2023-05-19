@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -62,6 +63,9 @@ public class Program
 		Replay replay = JsonSerializer.Deserialize<Replay>(File.ReadAllText(inputPath), NetworkingConstants.jsonIncludeOption)!;
 		string arguments = String.Join(' ', replay.cmdlineArgs) + " --seed=" + replay.seed;
 		arguments = arguments.Replace(" --replay=true", "");
+		using AnonymousPipeServerStream pipeServerStream = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+		arguments = arguments.Replace("--pipe=", "");
+		arguments += " --pipe=" + pipeServerStream.GetClientHandleAsString();
 		if(corePath == null)
 		{
 			Log("No core path specified", severity: LogSeverity.Error);
@@ -84,10 +88,13 @@ public class Program
 		int port = Convert.ToInt32(replay.cmdlineArgs.First(x => x.StartsWith("--port=")).Split('=')[1]);
 		int index0 = 0;
 		int index1 = 0;
-		using(TcpClient client0 = CheckForReady(id0, port, out index0), client1 = CheckForReady(id1, port, out index1))
+		pipeServerStream.ReadExactly(new byte[1], 0, 1);
+		using(TcpClient client0 = new TcpClient("localhost", port), client1 = new TcpClient("localhost", port))
 		{
 			using(NetworkStream stream0 = client0.GetStream(), stream1 = client1.GetStream())
 			{
+				index0 = GetPlayerIndex(stream0, id0, port);
+				index1 = GetPlayerIndex(stream1, id1, port);
 				for(int i = 0; i < replay.actions.Count; i++)
 				{
 					Replay.GameAction action = replay.actions[i];
@@ -157,37 +164,13 @@ public class Program
 		return true;
 	}
 
-	private static TcpClient CheckForReady(string id, int gamePort, out int playerIndex)
+	private static int GetPlayerIndex(NetworkStream stream, string id, int gamePort)
 	{
-		// AAAAAAAAAAAAAAAHHHHHHHHHH UGLY CODE....
-		// TODO: Rework Room to work with a listener instead
-		while(true)
-		{
-			TcpClient c = new TcpClient();
-			try
-			{
-				c.Connect("localhost", gamePort);
-				if(c.Connected)
-				{
-					byte[] idBytes = Encoding.UTF8.GetBytes(id);
-					c.GetStream().Write(idBytes, 0, idBytes.Length);
-					do
-					{
-						playerIndex = c.GetStream().ReadByte();
-					}
-					while(playerIndex == -1);
-					return c;
-				}
-				else
-				{
-					c.Close();
-				}
-			}
-			catch(SocketException)
-			{
-				Thread.Sleep(100);
-			}
-		}
+		byte[] idBytes = Encoding.UTF8.GetBytes(id);
+		stream.Write(idBytes, 0, idBytes.Length);
+		byte[] buffer = new byte[1];
+		stream.ReadExactly(buffer, 0, 1);
+		return buffer[0];
 	}
 
 }
