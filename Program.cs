@@ -76,7 +76,7 @@ public class Program
 			Arguments = shouldProfile ? $"collect -- {corePath} {arguments}" : arguments,
 			FileName = shouldProfile ? "dotnet-trace" : corePath,
 			WorkingDirectory = Path.GetDirectoryName(corePath),
-			RedirectStandardOutput = true,
+			RedirectStandardOutput = false,
 		};
 		string playerString = replay.cmdlineArgs.First(x => x.StartsWith("--players="));
 		playerString = playerString.Substring(playerString.IndexOf('=') + 1);
