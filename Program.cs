@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
@@ -108,8 +108,8 @@ public class Program
 								core.Kill();
 								return false;
 							}
-							action.packet.AddRange(NetworkingStructs.Packet.ENDING);
-							stream0.Write(action.packet.ToArray(), 0, action.packet.Count);
+							byte[] bytes = action.fullPacketBytes();
+							stream0.Write(bytes, 0, bytes.Length);
 						}
 						else
 						{
@@ -119,33 +119,35 @@ public class Program
 								core.Kill();
 								return false;
 							}
-							action.packet.AddRange(NetworkingStructs.Packet.ENDING);
-							stream1.Write(action.packet.ToArray(), 0, action.packet.Count);
+							byte[] bytes = action.fullPacketBytes();
+							stream1.Write(bytes, 0, bytes.Length);
 						}
 					}
 					else
 					{
-						List<byte>? packet = ReceiveRawPacket((action.player == index0) ? stream0 : stream1, timeout: 10000);
-						if(packet == null)
+						(byte typeByte, byte[]? bytes) = ReceiveRawPacket((action.player == index0) ? stream0 : stream1);
+						if(bytes == null)
 						{
 							Log($"[{i}]: Could not receive a packet in time", LogSeverity.Error);
 							core.Kill();
 							return false;
 						}
-						if(!packet.SequenceEqual(action.packet))
+						if(!bytes.SequenceEqual(action.packetContentBytes()))
 						{
-							if(action.packet.Count != packet.Count)
+							if(action.packetContentBytes().Length != bytes.Length)
 							{
-								Log($"[{i}]: Packets have different lengths: {action.packet.Count} vs {packet.Count}", severity: LogSeverity.Error);
+								Log($"[{i}]: Packets have different lengths: {action.packetContentBytes().Length} vs {bytes.Length}", severity: LogSeverity.Error);
 							}
 							else
 							{
 								Log($"[{i}]: Packet difference:", severity: LogSeverity.Error);
-								for(int j = 0; j < packet.Count; j++)
+								string replayContent = JsonSerializer.Serialize(action.packetContentBytes());
+								string newContent = JsonSerializer.Serialize(bytes);
+								for(int j = 0; j < replayContent.Length; j++)
 								{
-									if(packet[j] != action.packet[j])
+									if(replayContent[j] != newContent[j])
 									{
-										Log($"[{j}]: {packet[j]} vs. {action.packet[j]} ({(char)packet[j]} vs. {(char)action.packet[j]})");
+										Log($"[{j}]: {replayContent[j]} vs. {newContent[j]} ({(char)replayContent[j]} vs. {(char)newContent[j]})");
 									}
 								}
 							}
@@ -172,5 +174,4 @@ public class Program
 		stream.ReadExactly(buffer, 0, 1);
 		return buffer[0];
 	}
-
 }
