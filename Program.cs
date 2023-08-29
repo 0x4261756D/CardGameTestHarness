@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
@@ -53,7 +53,7 @@ public class Program
 		}
 		else
 		{
-			TestReplay(args[0]);
+			TestReplay(args[1]);
 		}
 	}
 
