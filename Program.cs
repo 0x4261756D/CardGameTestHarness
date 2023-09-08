@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
@@ -92,64 +92,75 @@ public class Program
 		using(TcpClient client0 = new("localhost", port), client1 = new("localhost", port))
 		{
 			using NetworkStream stream0 = client0.GetStream(), stream1 = client1.GetStream();
-				index0 = GetPlayerIndex(stream0, id0, port);
-				index1 = GetPlayerIndex(stream1, id1, port);
-				for(int i = 0; i < replay.actions.Count; i++)
+			index0 = GetPlayerIndex(stream0, id0, port);
+			index1 = GetPlayerIndex(stream1, id1, port);
+			for(int i = 0; i < replay.actions.Count; i++)
+			{
+				Replay.GameAction action = replay.actions[i];
+				if(action.clientToServer)
 				{
-					Replay.GameAction action = replay.actions[i];
-					if(action.clientToServer)
+					if(action.player == index0)
 					{
-						if(action.player == index0)
+						if(stream0.DataAvailable)
 						{
-							if(stream0.DataAvailable)
-							{
-								Log($"[{i}]: Core sent something but wanted to send", LogSeverity.Error);
-								core.Kill();
-								return false;
-							}
-							byte[] bytes = action.fullPacketBytes();
-							stream0.Write(bytes, 0, bytes.Length);
-						}
-						else
-						{
-							if(stream1.DataAvailable)
-							{
-								Log($"[{i}]: Core sent something but wanted to send", LogSeverity.Error);
-								core.Kill();
-								return false;
-							}
-							byte[] bytes = action.fullPacketBytes();
-							stream1.Write(bytes, 0, bytes.Length);
-						}
-					}
-					else
-					{
-						(byte typeByte, byte[]? bytes) = ReceiveRawPacket((action.player == index0) ? stream0 : stream1);
-						if(bytes == null)
-						{
-							Log($"[{i}]: Could not receive a packet in time", LogSeverity.Error);
+							Log($"[{i}]: Core sent something but wanted to send", LogSeverity.Error);
 							core.Kill();
 							return false;
 						}
-						if(!bytes.SequenceEqual(action.packetContentBytes()))
+						byte[] bytes = action.fullPacketBytes();
+						stream0.Write(bytes, 0, bytes.Length);
+					}
+					else
+					{
+						if(stream1.DataAvailable)
 						{
-							if(action.packetContentBytes().Length != bytes.Length)
+							Log($"[{i}]: Core sent something but wanted to send", LogSeverity.Error);
+							core.Kill();
+							return false;
+						}
+						byte[] bytes = action.fullPacketBytes();
+						stream1.Write(bytes, 0, bytes.Length);
+					}
+				}
+				else
+				{
+					(byte typeByte, byte[]? bytes) = ReceiveRawPacket((action.player == index0) ? stream0 : stream1);
+					if(bytes == null)
+					{
+						Log($"[{i}]: Could not receive a packet in time", LogSeverity.Error);
+						core.Kill();
+						return false;
+					}
+					if(!bytes.SequenceEqual(action.packetContentBytes()))
+					{
+						if(action.packetContentBytes().Length != bytes.Length)
+						{
+							Log($"[{i}]: Packets have different lengths: {action.packetContentBytes().Length} vs {bytes.Length}", severity: LogSeverity.Error);
+							Log(Encoding.UTF8.GetString(bytes));
+							Log("----------------------------");
+							Log(Encoding.UTF8.GetString(action.packetContentBytes()));
+						}
+						else
+						{
+							Log($"[{i}]: Packet difference:", severity: LogSeverity.Error);
+							string replayContent = JsonSerializer.Serialize(action.packetContentBytes());
+							string newContent = JsonSerializer.Serialize(bytes);
+							for(int j = 0; j < replayContent.Length; j++)
 							{
-								Log($"[{i}]: Packets have different lengths: {action.packetContentBytes().Length} vs {bytes.Length}", severity: LogSeverity.Error);
-							}
-							else
-							{
-								Log($"[{i}]: Packet difference:", severity: LogSeverity.Error);
-								string replayContent = JsonSerializer.Serialize(action.packetContentBytes());
-								string newContent = JsonSerializer.Serialize(bytes);
-								for(int j = 0; j < replayContent.Length; j++)
+								if(replayContent[j] != newContent[j])
 								{
-									if(replayContent[j] != newContent[j])
-									{
-										Log($"[{j}]: {replayContent[j]} vs. {newContent[j]} ({(char)replayContent[j]} vs. {(char)newContent[j]})");
-									}
+									Log($"[{j}]: {replayContent[j]} vs. {newContent[j]})");
 								}
 							}
+						}
+						Console.WriteLine("Update packet?");
+						if(Console.ReadLine() == "Y")
+						{
+							replay.actions[i].packetContent = Convert.ToBase64String(bytes);
+							File.WriteAllText(inputPath, JsonSerializer.Serialize(replay, NetworkingConstants.jsonIncludeOption));
+						}
+						else
+						{
 							core.Kill();
 							return false;
 						}
