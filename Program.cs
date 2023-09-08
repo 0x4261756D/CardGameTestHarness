@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
@@ -26,7 +26,7 @@ public class Program
 		int successful = 0;
 		if(Directory.Exists(args[1]))
 		{
-			List<string> failedFiles = new List<string>();
+			List<string> failedFiles = new();
 			foreach(string file in Directory.EnumerateFiles(args[1]))
 			{
 				if(TestReplay(file))
@@ -61,7 +61,7 @@ public class Program
 	{
 		Log($"Testing {inputPath}");
 		Replay replay = JsonSerializer.Deserialize<Replay>(File.ReadAllText(inputPath), NetworkingConstants.jsonIncludeOption)!;
-		string arguments = String.Join(' ', replay.cmdlineArgs) + " --seed=" + replay.seed;
+		string arguments = string.Join(' ', replay.cmdlineArgs) + " --seed=" + replay.seed;
 		arguments = arguments.Replace(" --replay=true", "");
 		using AnonymousPipeServerStream pipeServerStream = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
 		arguments = arguments.Replace("--pipe=", "");
@@ -89,10 +89,9 @@ public class Program
 		int index0 = 0;
 		int index1 = 0;
 		pipeServerStream.ReadExactly(new byte[1], 0, 1);
-		using(TcpClient client0 = new TcpClient("localhost", port), client1 = new TcpClient("localhost", port))
+		using(TcpClient client0 = new("localhost", port), client1 = new("localhost", port))
 		{
-			using(NetworkStream stream0 = client0.GetStream(), stream1 = client1.GetStream())
-			{
+			using NetworkStream stream0 = client0.GetStream(), stream1 = client1.GetStream();
 				index0 = GetPlayerIndex(stream0, id0, port);
 				index1 = GetPlayerIndex(stream1, id1, port);
 				for(int i = 0; i < replay.actions.Count; i++)
