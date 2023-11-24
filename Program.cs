@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
@@ -13,6 +13,7 @@ public class Program
 {
 	static string? corePath;
 	static bool shouldProfile = false;
+	static bool shouldAskForUpdates = false;
 	public static void Main(string[] args)
 	{
 		corePath = args[0];
@@ -21,6 +22,7 @@ public class Program
 		{
 			stopOnError = args.Contains("--stop_on_error");
 			shouldProfile = args.Contains("--profile");
+			shouldAskForUpdates = args.Contains("--ask_for_updates");
 		}
 		int count = 0;
 		int successful = 0;
@@ -153,11 +155,19 @@ public class Program
 								}
 							}
 						}
-						Console.WriteLine("Update packet?");
-						if(Console.ReadLine() == "Y")
+						if(shouldAskForUpdates)
 						{
-							replay.actions[i].packetContent = Convert.ToBase64String(bytes);
-							File.WriteAllText(inputPath, JsonSerializer.Serialize(replay, NetworkingConstants.jsonIncludeOption));
+							Console.WriteLine("Update packet?");
+							if(Console.ReadLine() == "Y")
+							{
+								replay.actions[i].packetContent = Convert.ToBase64String(bytes);
+								File.WriteAllText(inputPath, JsonSerializer.Serialize(replay, NetworkingConstants.jsonIncludeOption));
+							}
+							else
+							{
+								core.Kill();
+								return false;
+							}
 						}
 						else
 						{
