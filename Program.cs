@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
@@ -26,7 +26,7 @@ public class Program
 		int successful = 0;
 		if(Directory.Exists(args[1]))
 		{
-			List<string> failedFiles = new();
+			List<string> failedFiles = [];
 			foreach(string file in Directory.EnumerateFiles(args[1]))
 			{
 				if(TestReplay(file))
@@ -63,7 +63,7 @@ public class Program
 		Replay replay = JsonSerializer.Deserialize<Replay>(File.ReadAllText(inputPath), NetworkingConstants.jsonIncludeOption)!;
 		string arguments = string.Join(' ', replay.cmdlineArgs) + " --seed=" + replay.seed;
 		arguments = arguments.Replace(" --replay=true", "");
-		using AnonymousPipeServerStream pipeServerStream = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+		using AnonymousPipeServerStream pipeServerStream = new(PipeDirection.In, HandleInheritability.Inheritable);
 		arguments = arguments.Replace("--pipe=", "");
 		arguments += " --pipe=" + pipeServerStream.GetClientHandleAsString();
 		if(corePath == null)
@@ -71,7 +71,7 @@ public class Program
 			Log("No core path specified", severity: LogSeverity.Error);
 			return false;
 		}
-		ProcessStartInfo info = new ProcessStartInfo
+		ProcessStartInfo info = new()
 		{
 			Arguments = shouldProfile ? $"collect -- {corePath} {arguments}" : arguments,
 			FileName = shouldProfile ? "dotnet-trace" : corePath,
@@ -92,8 +92,8 @@ public class Program
 		using(TcpClient client0 = new("localhost", port), client1 = new("localhost", port))
 		{
 			using NetworkStream stream0 = client0.GetStream(), stream1 = client1.GetStream();
-			index0 = GetPlayerIndex(stream0, id0, port);
-			index1 = GetPlayerIndex(stream1, id1, port);
+			index0 = GetPlayerIndex(stream0, id0);
+			index1 = GetPlayerIndex(stream1, id1);
 			for(int i = 0; i < replay.actions.Count; i++)
 			{
 				Replay.GameAction action = replay.actions[i];
@@ -176,12 +176,12 @@ public class Program
 		return true;
 	}
 
-	private static int GetPlayerIndex(NetworkStream stream, string id, int gamePort)
+	private static int GetPlayerIndex(NetworkStream stream, string id)
 	{
 		byte[] idBytes = Encoding.UTF8.GetBytes(id);
-		stream.Write(idBytes, 0, idBytes.Length);
+		stream.Write(idBytes);
 		byte[] buffer = new byte[1];
-		stream.ReadExactly(buffer, 0, 1);
+		stream.ReadExactly(buffer);
 		return buffer[0];
 	}
 }
