@@ -1,6 +1,6 @@
 {
 	"cmdlineArgs": [
-		"--config=..\\..\\..\\config\\config.json",
+		"--config=../../../config/config.json",
 		"--replay=true",
 		"--mode=duel",
 		"--port=37042",
