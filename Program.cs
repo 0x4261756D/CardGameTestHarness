@@ -81,10 +81,8 @@ public class Program
 			RedirectStandardOutput = false,
 		};
 		string playerString = replay.cmdlineArgs.First(x => x.StartsWith("--players="));
-		playerString = playerString.Substring(playerString.IndexOf('=') + 1);
-		string[] playerStringParts = Encoding.UTF8.GetString(Convert.FromBase64String(playerString)).Split('µ');
-		string id0 = playerStringParts[2];
-		string id1 = playerStringParts[5];
+		playerString = playerString[(playerString.IndexOf('=') + 1)..];
+		CoreConfig.PlayerConfig[] playerInfos = JsonSerializer.Deserialize<CoreConfig.PlayerConfig[]>(Encoding.UTF8.GetString(Convert.FromBase64String(playerString)))!;
 		Process core = Process.Start(info)!;
 		core.Exited += (_, _) => { Console.WriteLine("exited"); };
 		int port = Convert.ToInt32(replay.cmdlineArgs.First(x => x.StartsWith("--port=")).Split('=')[1]);
@@ -94,8 +92,8 @@ public class Program
 		using(TcpClient client0 = new("localhost", port), client1 = new("localhost", port))
 		{
 			using NetworkStream stream0 = client0.GetStream(), stream1 = client1.GetStream();
-			index0 = GetPlayerIndex(stream0, id0);
-			index1 = GetPlayerIndex(stream1, id1);
+			index0 = GetPlayerIndex(stream0, playerInfos[0].id);
+			index1 = GetPlayerIndex(stream1, playerInfos[1].id);
 			for(int i = 0; i < replay.actions.Count; i++)
 			{
 				Replay.GameAction action = replay.actions[i];
@@ -109,7 +107,7 @@ public class Program
 							core.Kill();
 							return false;
 						}
-						byte[] bytes = action.fullPacketBytes();
+						byte[] bytes = action.FullPacketBytes();
 						stream0.Write(bytes, 0, bytes.Length);
 					}
 					else
@@ -120,7 +118,7 @@ public class Program
 							core.Kill();
 							return false;
 						}
-						byte[] bytes = action.fullPacketBytes();
+						byte[] bytes = action.FullPacketBytes();
 						stream1.Write(bytes, 0, bytes.Length);
 					}
 				}
@@ -133,19 +131,19 @@ public class Program
 						core.Kill();
 						return false;
 					}
-					if(!bytes.SequenceEqual(action.packetContentBytes()))
+					if(!bytes.SequenceEqual(action.PacketContentBytes()))
 					{
-						if(action.packetContentBytes().Length != bytes.Length)
+						if(action.PacketContentBytes().Length != bytes.Length)
 						{
-							Log($"[{i}]: Packets have different lengths: {action.packetContentBytes().Length} vs {bytes.Length}", severity: LogSeverity.Error);
+							Log($"[{i}]: Packets have different lengths: {action.PacketContentBytes().Length} vs {bytes.Length}", severity: LogSeverity.Error);
 							Log(Encoding.UTF8.GetString(bytes));
 							Log("----------------------------");
-							Log(Encoding.UTF8.GetString(action.packetContentBytes()));
+							Log(Encoding.UTF8.GetString(action.PacketContentBytes()));
 						}
 						else
 						{
 							Log($"[{i}]: Packet difference:", severity: LogSeverity.Error);
-							string replayContent = JsonSerializer.Serialize(action.packetContentBytes());
+							string replayContent = JsonSerializer.Serialize(action.PacketContentBytes());
 							string newContent = JsonSerializer.Serialize(bytes);
 							for(int j = 0; j < replayContent.Length; j++)
 							{
