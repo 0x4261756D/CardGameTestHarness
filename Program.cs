@@ -1,4 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
@@ -12,17 +16,17 @@ namespace CardGameTestHarness;
 public class Program
 {
 	static string? corePath;
-	static bool shouldProfile = false;
-	static bool shouldAskForUpdates = false;
+	static bool shouldProfile;
+	static bool shouldAskForUpdates;
 	public static void Main(string[] args)
 	{
 		corePath = args[0];
 		bool stopOnError = false;
 		if(args.Length > 2)
 		{
-			stopOnError = args.Contains("--stop_on_error");
-			shouldProfile = args.Contains("--profile");
-			shouldAskForUpdates = args.Contains("--ask_for_updates");
+			stopOnError = Array.IndexOf(args, "--stop_on_error") != -1;
+			shouldProfile = Array.IndexOf(args, "--profile") != -1;
+			shouldAskForUpdates = Array.IndexOf(args, "--ask_for_updates") != -1;
 		}
 		int count = 0;
 		int successful = 0;
@@ -55,14 +59,14 @@ public class Program
 		}
 		else
 		{
-			TestReplay(args[1]);
+			_ = TestReplay(args[1]);
 		}
 	}
 
 	private static bool TestReplay(string inputPath)
 	{
 		Log($"Testing {inputPath}");
-		Replay replay = JsonSerializer.Deserialize<Replay>(File.ReadAllText(inputPath), NetworkingConstants.jsonIncludeOption)!;
+		Replay replay = JsonSerializer.Deserialize<Replay>(File.ReadAllText(inputPath), GenericConstants.replaySerialization)!;
 		string arguments = string.Join(' ', replay.cmdlineArgs) + " --seed=" + replay.seed;
 		arguments = arguments.Replace(" --replay=true", "");
 		using AnonymousPipeServerStream pipeServerStream = new(PipeDirection.In, HandleInheritability.Inheritable);
@@ -80,12 +84,12 @@ public class Program
 			WorkingDirectory = Path.GetDirectoryName(corePath),
 			RedirectStandardOutput = false,
 		};
-		string playerString = replay.cmdlineArgs.First(x => x.StartsWith("--players="));
+		string playerString = replay.cmdlineArgs[Array.FindIndex(replay.cmdlineArgs, x => x.StartsWith("--players="))];
 		playerString = playerString[(playerString.IndexOf('=') + 1)..];
 		CoreConfig.PlayerConfig[] playerInfos = JsonSerializer.Deserialize<CoreConfig.PlayerConfig[]>(Encoding.UTF8.GetString(Convert.FromBase64String(playerString)))!;
 		Process core = Process.Start(info)!;
 		core.Exited += (_, _) => { Console.WriteLine("exited"); };
-		int port = Convert.ToInt32(replay.cmdlineArgs.First(x => x.StartsWith("--port=")).Split('=')[1]);
+		int port = Convert.ToInt32(replay.cmdlineArgs[Array.FindIndex(replay.cmdlineArgs, x => x.StartsWith("--port="))].Split('=')[1]);
 		int index0 = 0;
 		int index1 = 0;
 		pipeServerStream.ReadExactly(new byte[1], 0, 1);
@@ -131,7 +135,7 @@ public class Program
 						core.Kill();
 						return false;
 					}
-					if(!bytes.SequenceEqual(action.PacketContentBytes()))
+					if(!StructuralComparisons.StructuralEqualityComparer.Equals(bytes, action.PacketContentBytes()))
 					{
 						if(action.PacketContentBytes().Length != bytes.Length)
 						{
@@ -159,7 +163,7 @@ public class Program
 							if(Console.ReadLine() == "Y")
 							{
 								replay.actions[i].packetContent = Convert.ToBase64String(bytes);
-								File.WriteAllText(inputPath, JsonSerializer.Serialize(replay, NetworkingConstants.jsonIncludeOption));
+								File.WriteAllText(inputPath, JsonSerializer.Serialize(replay, GenericConstants.replaySerialization));
 							}
 							else
 							{
